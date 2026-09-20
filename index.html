@@ -21,7 +21,8 @@
   header { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
   h1 { font-size: 19px; margin: 0; }
   .dim { color: var(--dim); font-size: 13px; }
-  .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px; margin-bottom: 14px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px; margin-bottom: 14px; scroll-margin-top: 12px; }
+  .card:target { outline: 2px solid var(--accent); }
   .row { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; }
   h2 { font-size: 17px; margin: 0 0 2px; }
   .price { font-size: 22px; font-weight: 700; white-space: nowrap; }
@@ -97,7 +98,7 @@ function hotelCard(h) {
       <td>${esc(p.ts)}</td><td>${esc(p.source ?? "–")}</td>
       <td class="num">${won(p.best)}</td><td class="num dim">${p.found ?? "–"}건</td>
     </tr>`).join("");
-  return `<section class="card">
+  return `<section class="card" id="${esc(h.id)}">
     <div class="row">
       <div>
         <h2>${esc(h.name)}${h.enabled === false ? ' <span class="tag">감시 중지</span>' : ""}</h2>
@@ -125,6 +126,7 @@ fetch("data.json?" + Date.now()).then(r => r.json()).then(d => {
   document.getElementById("app").innerHTML = d.hotels.length
     ? d.hotels.map(hotelCard).join("")
     : '<p class="empty">아직 기록이 없습니다.</p>';
+  if (location.hash) document.querySelector(location.hash)?.scrollIntoView();
 }).catch(e => {
   document.getElementById("app").innerHTML = '<p class="empty">기록을 불러오지 못했습니다: ' + esc(e.message) + "</p>";
 });
