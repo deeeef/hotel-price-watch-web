@@ -82,14 +82,14 @@ function chart(points) {
 }
 
 function hotelCard(h) {
-  const pts = h.points.filter(p => p.best != null);
+  const pts = (h.series && h.series.length ? h.series : h.points).filter(p => p.best != null);
   const cur = pts.length ? pts[pts.length - 1].best : null;
   const prev = pts.length > 1 ? pts[pts.length - 2].best : null;
   const diff = cur != null && prev != null ? cur - prev : 0;
   const chg = diff ? `<span class="chg ${diff < 0 ? "down" : "up"}">${diff < 0 ? "▼" : "▲"} ${won(Math.abs(diff))}</span>` : "";
   const lo = pts.length ? Math.min(...pts.map(p => p.best)) : null;
   const srcRows = Object.values(h.sources || {}).map(s =>
-    `<span class="tag">${esc(s.label)}${s.error ? ' <span class="err">실패</span>' : ""}</span>`).join("");
+    `<span class="tag">${esc(s.label)}${s.error ? ' <span class="err">실패</span>' : (s.found != null ? " " + s.found + "건" : "")}</span>`).join("");
   const offers = (h.offers || []).map((o, i) => `<tr>
       <td>${i + 1}. ${esc(o.source)}<div class="dim">${esc(o.room)}${o.plan ? " · " + esc(o.plan) : ""}</div></td>
       <td class="num">${won(o.total_krw)}${o.url ? `<div><a href="${esc(o.url)}" target="_blank" rel="noopener">열기</a></div>` : ""}</td>
@@ -103,16 +103,16 @@ function hotelCard(h) {
       <div>
         <h2>${esc(h.name)}${h.enabled === false ? ' <span class="tag">감시 중지</span>' : ""}</h2>
         <div class="dim">${esc(h.room_label)} · 성인 ${h.adults} · ${esc(h.conditions || "조건 없음")}</div>
-        <div class="dim">${esc(h.checkin)} ~ ${esc(h.checkout)} (${h.nights}박) · 갱신 ${esc(h.updated || "")}</div>
+        <div class="dim">${esc(h.checkin)} ~ ${esc(h.checkout)} (${h.nights}박) · 갱신 ${esc(h.updated || "")}${h.found != null ? ` · 이번 조회 <b>${h.found}건</b>` : ""}</div>
       </div>
       <div style="text-align:right">
         <div class="price">${won(cur)}</div>
         <div>${chg}${lo != null && cur != null ? ` <span class="dim">최저 ${man(lo)}</span>` : ""}</div>
       </div>
     </div>
-    ${chart(h.points)}
+    ${chart(h.series && h.series.length ? h.series : h.points)}
     <div>${srcRows}</div>
-    <details open><summary>현재 싼 순 (상위 ${(h.offers || []).length}건)</summary>
+    <details open><summary>현재 싼 순 — 조건 일치 ${h.found ?? (h.offers || []).length}건 중 상위 ${(h.offers || []).length}건</summary>
       <table><thead><tr><th>출처 · 룸 · 조건</th><th class="num">총액</th></tr></thead><tbody>${offers || '<tr><td colspan="2" class="dim">조건에 맞는 요금 없음</td></tr>'}</tbody></table>
     </details>
     <details><summary>최근 조회 기록 (${h.points.length}회 중 최신 24회)</summary>
