@@ -9,7 +9,7 @@
 <title>숙박 가격 감시</title>
 <style>
   :root {
-    --bg: #f6f7f9; --card: #fff; --line: #e3e6ea; --grid: #9aa3ae; --text: #1b1f24; --dim: #5c6672;
+    --bg: #f6f7f9; --card: #fff; --line: #e3e6ea; --grid: #77808c; --text: #1b1f24; --dim: #5c6672;
     --down: #1a7f37; --up: #c9372c; --accent: #2f6feb; --on-accent: #fff;
     --warn: #7a4e00; --warn-bg: #fff4dc; --warn-line: #e8c98a;
   }
@@ -37,12 +37,16 @@
   .cta { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 50px;
          margin: 12px 0 0; padding: 9px 14px; border-radius: 12px; background: var(--accent); color: var(--on-accent);
          font-weight: 700; text-decoration: none; }
-  .cta small { display: block; font-size: 12px; font-weight: 500; opacity: .85; margin-top: 1px; }
+  .cta small { display: block; font-size: 13px; font-weight: 500; margin-top: 1px; }
   .cta .go { font-size: 20px; }
   .warn { margin-top: 10px; padding: 8px 11px; border: 1px solid var(--warn-line); border-radius: 10px;
           background: var(--warn-bg); color: var(--warn); font-size: 13px; }
-  .chips { display: flex; gap: 6px; margin-top: 8px; }
-  .chip { min-height: 32px; padding: 4px 11px; border: 1px solid var(--line); border-radius: 999px;
+  .chips { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+  nav.chips { margin: 0 0 14px; }
+  nav.chips a { display: flex; align-items: center; min-height: 44px; padding: 2px 13px;
+                border: 1px solid var(--grid); border-radius: 999px; color: var(--dim);
+                font-size: 13px; text-decoration: none; }
+  .chip { min-height: 44px; padding: 4px 13px; border: 1px solid var(--grid); border-radius: 999px;
           background: transparent; color: var(--dim); font: inherit; font-size: 13px; cursor: pointer; }
   .chip[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); font-weight: 700; }
   .tag { display: inline-block; font-size: 13px; color: var(--dim); border: 1px solid var(--line);
@@ -53,21 +57,24 @@
   th { color: var(--dim); font-weight: 600; }
   td.num, th.num { text-align: right; white-space: nowrap; }
   a { color: var(--accent); }
-  .open { display: inline-block; min-height: 32px; padding: 5px 0; }
+  .open { display: inline-block; min-height: 44px; padding: 11px 0; }
   details { margin-top: 12px; border-top: 1px solid var(--line); }
-  summary { display: flex; align-items: center; min-height: 44px; cursor: pointer; color: var(--dim); font-size: 13px; }
+  summary { display: list-item; list-style-position: inside; padding: 12px 2px; min-height: 44px;
+            cursor: pointer; color: var(--dim); font-size: 13px; }
   svg { width: 100%; height: 172px; display: block; margin-top: 8px; }
   :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-  .skel { height: 260px; margin-bottom: 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--card); }
+  .skel { height: 620px; margin-bottom: 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--card); }
   .empty { color: var(--dim); padding: 18px 0; }
   .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 </style>
 </head>
 <body>
 <header><h1>숙박 가격 감시</h1><span class="dim" id="updated"></span></header>
-<main id="app"><div class="skel"></div><div class="skel"></div></main>
+<nav class="chips" id="nav" aria-label="숙소 바로가기"></nav>
+<main id="app"><div class="skel"></div><div class="skel"></div><div class="skel"></div></main>
 
 <script>
+const NO_OFFER = '<p class="warn">지금은 조건에 맞는 요금이 없습니다. 다시 나오면 카톡으로 알려드립니다.</p>';
 const DATA = {};                 // id → 숙소 (기간 칩으로 그래프만 다시 그릴 때 사용)
 const RANGE = {};                // id → 최근 N일 (0 = 전체)
 const won = n => n == null ? "–" : "₩" + n.toLocaleString("ko-KR");
@@ -102,19 +109,22 @@ function inRange(pts, days) {
   const from = Date.now() - days * 86400000, cut = pts.filter(p => p.t >= from);
   return cut.length > 1 ? cut : pts.slice(-2);
 }
-function downsample(pts, max = 220) {   // 점이 많아지면 구간별 최저가만 (싼 값이 지워지지 않게)
-  if (pts.length <= max) return pts;
+function downsample(pts, max = 110) {   // 점이 많으면 구간별 최저·최고만 (싼 값도 비싼 값도 지워지지 않게)
+  if (pts.length <= max * 2) return pts;
   const step = pts.length / max, out = [];
   for (let i = 0; i < max; i++) {
     const seg = pts.slice(Math.floor(i * step), Math.floor((i + 1) * step) || Math.floor(i * step) + 1);
-    if (seg.length) out.push(seg.reduce((a, b) => (b.best < a.best ? b : a)));
+    if (!seg.length) continue;
+    const lo = seg.reduce((a, b) => (b.best < a.best ? b : a));
+    const hi = seg.reduce((a, b) => (b.best > a.best ? b : a));
+    for (const q of (lo.t <= hi.t ? [lo, hi] : [hi, lo])) if (out[out.length - 1] !== q) out.push(q);
   }
   if (out[out.length - 1] !== pts[pts.length - 1]) out.push(pts[pts.length - 1]);
   return out;
 }
 
 function chart(all, record) {
-  const pts = downsample(all);
+  const pts = downsample(all), total = all.length;
   if (!pts.length) return '<p class="dim">아직 가격 기록이 없습니다.</p>';
   if (pts.length < 2) return `<p class="dim">기록 1회 — ${kst(pts[0].t)} ${won(pts[0].best)}. 2회 이상 쌓이면 그래프가 나옵니다.</p>`;
   const W = 340, H = 172, padL = 60, padR = 12, padT = 18, padB = 24;
@@ -131,12 +141,14 @@ function chart(all, record) {
   const day = ms => { const o = kstParts(ms); return `${+o.month}/${o.day} ${o.hour}시`; };
   const last = pts[pts.length - 1];
   const lastY = Math.min(Math.max(Y(last.best) - 9, padT + 2), H - padB - 6);
-  const rec = record && record.total_krw >= y0 && record.total_krw <= y1 ? record.total_krw : null;
-  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="가격 추이 ${pts.length}회: 최저 ${num(dMin)}원, 최고 ${num(dMax)}원, 현재 ${num(last.best)}원">
+  const flat = dMax === dMin;                     // 값이 한 가지면 선·라벨을 하나만
+  const r = record && record.total_krw;
+  const rec = r && r >= y0 && r <= y1 && Math.abs(r - dMin) > (y1 - y0) * 0.02 ? r : null;
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="가격 추이 ${total}회: 최저 ${num(dMin)}원, 최고 ${num(dMax)}원, 현재 ${num(last.best)}원">
     <line x1="${padL}" y1="${Y(dMax).toFixed(1)}" x2="${W - padR}" y2="${Y(dMax).toFixed(1)}" stroke="var(--grid)" stroke-width="0.7"/>
-    <line x1="${padL}" y1="${Y(dMin).toFixed(1)}" x2="${W - padR}" y2="${Y(dMin).toFixed(1)}" stroke="var(--grid)" stroke-width="0.7" stroke-dasharray="3 3"/>
+    ${flat ? "" : `<line x1="${padL}" y1="${Y(dMin).toFixed(1)}" x2="${W - padR}" y2="${Y(dMin).toFixed(1)}" stroke="var(--grid)" stroke-width="0.7" stroke-dasharray="3 3"/>`}
     <text x="2" y="${(Y(dMax) + 4).toFixed(1)}" font-size="12" fill="var(--dim)">${num(dMax)}</text>
-    <text x="2" y="${(Y(dMin) + 4).toFixed(1)}" font-size="12" fill="var(--dim)">${num(dMin)}</text>
+    ${flat ? "" : `<text x="2" y="${(Y(dMin) + 4).toFixed(1)}" font-size="12" fill="var(--dim)">${num(dMin)}</text>`}
     ${rec != null ? `<line x1="${padL}" y1="${Y(rec).toFixed(1)}" x2="${W - padR}" y2="${Y(rec).toFixed(1)}" stroke="var(--down)" stroke-width="0.9" stroke-dasharray="1 3"/>` : ""}
     <path d="${area}" fill="var(--accent)" opacity="0.10"/>
     <path d="${line}" fill="none" stroke="var(--accent)" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/>
@@ -154,7 +166,8 @@ function chartBlock(h) {
       [[1, "24시간"], [7, "7일"], [0, "전체"]].map(([d, label]) =>
         `<button class="chip" type="button" data-hotel="${esc(h.id)}" data-days="${d}" aria-pressed="${d === days}">${label}</button>`).join("") +
       `</div>` : "";
-  return chips + `<div id="chart-${esc(h.id)}">${chart(inRange(pts, days), h.best)}</div>`;
+  const legend = h.best ? `<div class="dim" style="font-size:12px">점선 = 역대 최저 ${won(h.best.total_krw)}</div>` : "";
+  return chips + `<div id="chart-${esc(h.id)}">${chart(inRange(pts, days), h.best)}</div>` + legend;
 }
 
 function hotelCard(h) {
@@ -217,7 +230,7 @@ function hotelCard(h) {
     <div class="price"><span class="sr">현재 최저가 </span>${won(cur)}${off ? '<span class="unit">마지막 확인</span>' : ""}</div>
     <div>${chg}</div>
     ${recLine}
-    ${cta}
+    ${cta || (off ? "" : NO_OFFER)}
     ${warns.map(t => `<p class="warn">${t}</p>`).join("")}
     ${chartBlock(h)}
     <div>${tags}</div>
@@ -245,6 +258,8 @@ fetch("data.json?" + Date.now()).then(r => r.json()).then(d => {
   d.hotels.forEach(h => { DATA[h.id] = h; });
   const last = Math.max(...d.hotels.map(h => { const p = pointsOf(h); return p.length ? p[p.length - 1].t : 0; }), 0);
   document.getElementById("updated").textContent = last ? `업데이트 ${ago(last)} · ${kst(last)}` : d.generated_at;
+  document.getElementById("nav").innerHTML = d.hotels.length > 4
+    ? d.hotels.map(h => `<a href="#${esc(h.id)}">${esc(h.name)}</a>`).join("") : "";
   document.getElementById("app").innerHTML = d.hotels.length
     ? d.hotels.map(hotelCard).join("")
     : '<p class="empty">아직 기록이 없습니다.</p>';
