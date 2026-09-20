@@ -4,129 +4,251 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
+<meta name="color-scheme" content="light dark">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>🏨</text></svg>">
 <title>숙박 가격 감시</title>
 <style>
   :root {
-    --bg: #f6f7f9; --card: #fff; --line: #e3e6ea; --text: #1b1f24; --dim: #6b7480;
-    --down: #1a7f37; --up: #c9372c; --accent: #2f6feb;
+    --bg: #f6f7f9; --card: #fff; --line: #e3e6ea; --grid: #9aa3ae; --text: #1b1f24; --dim: #5c6672;
+    --down: #1a7f37; --up: #c9372c; --accent: #2f6feb; --on-accent: #fff;
+    --warn: #7a4e00; --warn-bg: #fff4dc; --warn-line: #e8c98a;
   }
   @media (prefers-color-scheme: dark) {
-    :root { --bg: #0f1216; --card: #171b21; --line: #272d36; --text: #e6e9ee; --dim: #98a2b0;
-            --down: #3fb950; --up: #f85149; --accent: #4c8dff; }
+    :root { --bg: #0f1216; --card: #171b21; --line: #272d36; --grid: #5f6b7a; --text: #e6e9ee; --dim: #9aa5b3;
+            --down: #3fb950; --up: #f85149; --accent: #4c8dff; --on-accent: #0b1220;
+            --warn: #e3b341; --warn-bg: #2a2318; --warn-line: #55471f; }
   }
   * { box-sizing: border-box; }
-  body { margin: 0; padding: 16px; background: var(--bg); color: var(--text);
+  body { margin: 0; padding: 14px 16px 36px; background: var(--bg); color: var(--text); -webkit-text-size-adjust: 100%;
          font: 15px/1.5 -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif; }
-  header { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+  header { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
   h1 { font-size: 19px; margin: 0; }
   .dim { color: var(--dim); font-size: 13px; }
-  .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px; margin-bottom: 14px; scroll-margin-top: 12px; }
-  .card:target { outline: 2px solid var(--accent); }
-  .row { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; }
-  h2 { font-size: 17px; margin: 0 0 2px; }
-  .price { font-size: 22px; font-weight: 700; white-space: nowrap; }
-  .chg { font-size: 13px; font-weight: 600; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 14px;
+          margin-bottom: 14px; scroll-margin-top: 10px; }
+  .card:target { box-shadow: 0 0 0 2px var(--accent); }
+  .card.off { opacity: .66; }
+  h2 { font-size: 18px; line-height: 1.3; margin: 0 0 3px; }
+  .meta { color: var(--dim); font-size: 13px; }
+  .price { font-size: 30px; font-weight: 800; letter-spacing: -.4px; line-height: 1.15; margin-top: 10px; }
+  .price .unit { font-size: 15px; font-weight: 600; color: var(--dim); margin-left: 4px; }
+  .chg { font-size: 14px; font-weight: 700; }
   .down { color: var(--down); } .up { color: var(--up); }
+  .cta { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 50px;
+         margin: 12px 0 0; padding: 9px 14px; border-radius: 12px; background: var(--accent); color: var(--on-accent);
+         font-weight: 700; text-decoration: none; }
+  .cta small { display: block; font-size: 12px; font-weight: 500; opacity: .85; margin-top: 1px; }
+  .cta .go { font-size: 20px; }
+  .warn { margin-top: 10px; padding: 8px 11px; border: 1px solid var(--warn-line); border-radius: 10px;
+          background: var(--warn-bg); color: var(--warn); font-size: 13px; }
+  .chips { display: flex; gap: 6px; margin-top: 8px; }
+  .chip { min-height: 32px; padding: 4px 11px; border: 1px solid var(--line); border-radius: 999px;
+          background: transparent; color: var(--dim); font: inherit; font-size: 13px; cursor: pointer; }
+  .chip[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); font-weight: 700; }
+  .tag { display: inline-block; font-size: 13px; color: var(--dim); border: 1px solid var(--line);
+         border-radius: 999px; padding: 2px 9px; margin: 5px 4px 0 0; }
+  .err { color: var(--up); font-weight: 700; }
   table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  th, td { text-align: left; padding: 6px 4px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th, td { text-align: left; padding: 8px 4px; border-bottom: 1px solid var(--line); vertical-align: top; }
   th { color: var(--dim); font-weight: 600; }
   td.num, th.num { text-align: right; white-space: nowrap; }
-  a { color: var(--accent); text-decoration: none; }
-  a:hover { text-decoration: underline; }
-  .tag { display: inline-block; font-size: 12px; color: var(--dim); border: 1px solid var(--line);
-         border-radius: 999px; padding: 1px 8px; margin-right: 4px; }
-  .err { color: var(--up); }
-  details { margin-top: 10px; }
-  summary { cursor: pointer; color: var(--dim); font-size: 13px; }
-  svg { width: 100%; height: 170px; display: block; margin: 10px 0 2px; overflow: visible; }
-  .empty { color: var(--dim); padding: 20px 0; }
+  a { color: var(--accent); }
+  .open { display: inline-block; min-height: 32px; padding: 5px 0; }
+  details { margin-top: 12px; border-top: 1px solid var(--line); }
+  summary { display: flex; align-items: center; min-height: 44px; cursor: pointer; color: var(--dim); font-size: 13px; }
+  svg { width: 100%; height: 172px; display: block; margin-top: 8px; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .skel { height: 260px; margin-bottom: 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--card); }
+  .empty { color: var(--dim); padding: 18px 0; }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 </style>
 </head>
 <body>
 <header><h1>숙박 가격 감시</h1><span class="dim" id="updated"></span></header>
-<div id="app"><p class="empty">불러오는 중…</p></div>
+<main id="app"><div class="skel"></div><div class="skel"></div></main>
 
 <script>
+const DATA = {};                 // id → 숙소 (기간 칩으로 그래프만 다시 그릴 때 사용)
+const RANGE = {};                // id → 최근 N일 (0 = 전체)
 const won = n => n == null ? "–" : "₩" + n.toLocaleString("ko-KR");
-const man = n => n == null ? "–" : (n / 10000).toFixed(1) + "만";
+const num = n => n == null ? "–" : n.toLocaleString("ko-KR");
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
-function chart(points) {
-  const pts = points.filter(p => p.best != null);
-  if (pts.length < 2) return '<p class="dim">기록이 2회 이상 쌓이면 그래프가 나옵니다.</p>';
-  const W = 700, H = 170, padL = 52, padR = 10, padT = 12, padB = 22;
-  const xs = pts.map(p => new Date(p.at).getTime());
-  const ys = pts.map(p => p.best);
-  const [x0, x1] = [Math.min(...xs), Math.max(...xs)];
-  let [y0, y1] = [Math.min(...ys), Math.max(...ys)];
-  if (y0 === y1) { y0 -= 1000; y1 += 1000; }
-  const pad = (y1 - y0) * 0.12; y0 -= pad; y1 += pad;
+// 시각: 오프셋이 없는 옛 기록은 UTC 로 간주. 표시는 항상 한국 시간
+const T = at => { const s = String(at || ""); return Date.parse(/(Z|[+-]\d{2}:?\d{2})$/.test(s) ? s : s + "Z"); };
+const kstParts = ms => {                      // 보는 기기의 시간대와 무관하게 항상 한국 시간으로
+  const o = {};
+  for (const p of new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Seoul", month: "2-digit", day: "2-digit",
+        hour: "2-digit", minute: "2-digit", hour12: false }).formatToParts(new Date(ms))) o[p.type] = p.value;
+  return o;
+};
+const kst = ms => { const o = kstParts(ms); return `${+o.month}/${o.day} ${o.hour}:${o.minute}`; };
+const ago = ms => {
+  const m = Math.round((Date.now() - ms) / 60000);
+  if (m < 2) return "방금";
+  if (m < 60) return m + "분 전";
+  const h = Math.round(m / 60);
+  return h < 24 ? h + "시간 전" : Math.round(h / 24) + "일 전";
+};
+
+function pointsOf(h) {          // [시각, 최저가] → 시간순 정렬 + 같은 시각 중복 제거
+  const raw = (h.series && h.series.length ? h.series : h.points) || [];
+  const map = new Map();
+  for (const p of raw) { const t = T(p.at); if (isFinite(t) && p.best != null) map.set(t, p.best); }
+  return [...map.entries()].sort((a, b) => a[0] - b[0]).map(([t, best]) => ({ t, best }));
+}
+function inRange(pts, days) {
+  if (!days) return pts;
+  const from = Date.now() - days * 86400000, cut = pts.filter(p => p.t >= from);
+  return cut.length > 1 ? cut : pts.slice(-2);
+}
+function downsample(pts, max = 220) {   // 점이 많아지면 구간별 최저가만 (싼 값이 지워지지 않게)
+  if (pts.length <= max) return pts;
+  const step = pts.length / max, out = [];
+  for (let i = 0; i < max; i++) {
+    const seg = pts.slice(Math.floor(i * step), Math.floor((i + 1) * step) || Math.floor(i * step) + 1);
+    if (seg.length) out.push(seg.reduce((a, b) => (b.best < a.best ? b : a)));
+  }
+  if (out[out.length - 1] !== pts[pts.length - 1]) out.push(pts[pts.length - 1]);
+  return out;
+}
+
+function chart(all, record) {
+  const pts = downsample(all);
+  if (!pts.length) return '<p class="dim">아직 가격 기록이 없습니다.</p>';
+  if (pts.length < 2) return `<p class="dim">기록 1회 — ${kst(pts[0].t)} ${won(pts[0].best)}. 2회 이상 쌓이면 그래프가 나옵니다.</p>`;
+  const W = 340, H = 172, padL = 60, padR = 12, padT = 18, padB = 24;
+  const xs = pts.map(p => p.t), ys = pts.map(p => p.best);
+  const [x0, x1] = [xs[0], xs[xs.length - 1]];
+  const dMin = Math.min(...ys), dMax = Math.max(...ys);
+  const span = Math.max(dMax - dMin, Math.round(dMax * 0.02));   // 미세 변동이 전폭 진폭처럼 보이지 않게 최소 2% 폭
+  const mid = (dMin + dMax) / 2, pad = span * 0.22;
+  const [y0, y1] = [mid - span / 2 - pad, mid + span / 2 + pad];
   const X = t => padL + (W - padL - padR) * (x1 === x0 ? 0.5 : (t - x0) / (x1 - x0));
   const Y = v => padT + (H - padT - padB) * (1 - (v - y0) / (y1 - y0));
-  const line = pts.map((p, i) => (i ? "L" : "M") + X(xs[i]).toFixed(1) + " " + Y(p.best).toFixed(1)).join(" ");
-  const area = line + ` L ${X(x1).toFixed(1)} ${H - padB} L ${X(x0).toFixed(1)} ${H - padB} Z`;
-  const fmt = t => { const d = new Date(t); return (d.getMonth() + 1) + "/" + d.getDate() + " " + String(d.getHours()).padStart(2, "0") + "시"; };
-  const last = pts[pts.length - 1], lo = Math.min(...ys);
-  return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="가격 추이">
-    <line x1="${padL}" y1="${Y(y1 - pad).toFixed(1)}" x2="${W - padR}" y2="${Y(y1 - pad).toFixed(1)}" stroke="var(--line)"/>
-    <line x1="${padL}" y1="${Y(lo).toFixed(1)}" x2="${W - padR}" y2="${Y(lo).toFixed(1)}" stroke="var(--line)" stroke-dasharray="3 3"/>
-    <text x="0" y="${(Y(y1 - pad) + 4).toFixed(1)}" font-size="11" fill="var(--dim)">${man(Math.round(y1 - pad))}</text>
-    <text x="0" y="${(Y(lo) + 4).toFixed(1)}" font-size="11" fill="var(--dim)">${man(lo)}</text>
+  const line = pts.map((p, i) => (i ? "L" : "M") + X(p.t).toFixed(1) + " " + Y(p.best).toFixed(1)).join(" ");
+  const area = `${line} L ${X(x1).toFixed(1)} ${H - padB} L ${X(x0).toFixed(1)} ${H - padB} Z`;
+  const day = ms => { const o = kstParts(ms); return `${+o.month}/${o.day} ${o.hour}시`; };
+  const last = pts[pts.length - 1];
+  const lastY = Math.min(Math.max(Y(last.best) - 9, padT + 2), H - padB - 6);
+  const rec = record && record.total_krw >= y0 && record.total_krw <= y1 ? record.total_krw : null;
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="가격 추이 ${pts.length}회: 최저 ${num(dMin)}원, 최고 ${num(dMax)}원, 현재 ${num(last.best)}원">
+    <line x1="${padL}" y1="${Y(dMax).toFixed(1)}" x2="${W - padR}" y2="${Y(dMax).toFixed(1)}" stroke="var(--grid)" stroke-width="0.7"/>
+    <line x1="${padL}" y1="${Y(dMin).toFixed(1)}" x2="${W - padR}" y2="${Y(dMin).toFixed(1)}" stroke="var(--grid)" stroke-width="0.7" stroke-dasharray="3 3"/>
+    <text x="2" y="${(Y(dMax) + 4).toFixed(1)}" font-size="12" fill="var(--dim)">${num(dMax)}</text>
+    <text x="2" y="${(Y(dMin) + 4).toFixed(1)}" font-size="12" fill="var(--dim)">${num(dMin)}</text>
+    ${rec != null ? `<line x1="${padL}" y1="${Y(rec).toFixed(1)}" x2="${W - padR}" y2="${Y(rec).toFixed(1)}" stroke="var(--down)" stroke-width="0.9" stroke-dasharray="1 3"/>` : ""}
     <path d="${area}" fill="var(--accent)" opacity="0.10"/>
-    <path d="${line}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round"/>
-    <circle cx="${X(xs[xs.length - 1]).toFixed(1)}" cy="${Y(last.best).toFixed(1)}" r="3.5" fill="var(--accent)"/>
-    <text x="${padL}" y="${H - 6}" font-size="11" fill="var(--dim)">${fmt(x0)}</text>
-    <text x="${W - padR}" y="${H - 6}" font-size="11" fill="var(--dim)" text-anchor="end">${fmt(x1)}</text>
+    <path d="${line}" fill="none" stroke="var(--accent)" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/>
+    <circle cx="${X(last.t).toFixed(1)}" cy="${Y(last.best).toFixed(1)}" r="3.2" fill="var(--accent)"/>
+    <text x="${(W - padR).toFixed(1)}" y="${lastY.toFixed(1)}" font-size="12" font-weight="700" fill="var(--accent)" text-anchor="end">${num(last.best)}</text>
+    <text x="${padL}" y="${H - 6}" font-size="12" fill="var(--dim)">${day(x0)}</text>
+    <text x="${W - padR}" y="${H - 6}" font-size="12" fill="var(--dim)" text-anchor="end">${day(x1)}</text>
   </svg>`;
 }
 
+function chartBlock(h) {
+  const pts = pointsOf(h), days = RANGE[h.id] ?? 0;
+  const chips = pts.length > 24 && (pts[pts.length - 1].t - pts[0].t) > 86400000
+    ? `<div class="chips" role="group" aria-label="기간 선택">` +
+      [[1, "24시간"], [7, "7일"], [0, "전체"]].map(([d, label]) =>
+        `<button class="chip" type="button" data-hotel="${esc(h.id)}" data-days="${d}" aria-pressed="${d === days}">${label}</button>`).join("") +
+      `</div>` : "";
+  return chips + `<div id="chart-${esc(h.id)}">${chart(inRange(pts, days), h.best)}</div>`;
+}
+
 function hotelCard(h) {
-  const pts = (h.series && h.series.length ? h.series : h.points).filter(p => p.best != null);
+  const pts = pointsOf(h), off = h.enabled === false;
   const cur = pts.length ? pts[pts.length - 1].best : null;
-  const prev = pts.length > 1 ? pts[pts.length - 2].best : null;
-  const diff = cur != null && prev != null ? cur - prev : 0;
-  const chg = diff ? `<span class="chg ${diff < 0 ? "down" : "up"}">${diff < 0 ? "▼" : "▲"} ${won(Math.abs(diff))}</span>` : "";
-  const lo = pts.length ? Math.min(...pts.map(p => p.best)) : null;
-  const srcRows = Object.values(h.sources || {}).map(s =>
-    `<span class="tag">${esc(s.label)}${s.error ? ' <span class="err">실패</span>' : (s.found != null ? " " + s.found + "건" : "")}</span>`).join("");
-  const offers = (h.offers || []).map((o, i) => `<tr>
-      <td>${i + 1}. ${esc(o.source)}<div class="dim">${esc(o.room)}${o.plan ? " · " + esc(o.plan) : ""}</div></td>
-      <td class="num">${won(o.total_krw)}${o.url ? `<div><a href="${esc(o.url)}" target="_blank" rel="noopener">열기</a></div>` : ""}</td>
+  const prev = pts.length > 1 ? pts[pts.length - 2] : null;
+  const diff = cur != null && prev ? cur - prev.best : 0;
+  const pct = diff && prev ? (Math.abs(diff) / prev.best * 100).toFixed(1) : null;
+  const chg = diff
+    ? `<span class="chg ${diff < 0 ? "down" : "up"}">${diff < 0 ? "▼" : "▲"} ${won(Math.abs(diff))} (${pct}%)</span>
+       <span class="dim">${kst(prev.t)} 대비</span>`
+    : (prev ? `<span class="dim">${kst(prev.t)} 대비 변동 없음</span>` : "");
+  const rec = h.best;
+  const recLine = rec
+    ? `<div class="meta">역대 최저 <b>${won(rec.total_krw)}</b> · ${esc(rec.ts || "")} ${esc(rec.source || "")}` +
+      (cur != null && rec.total_krw != null
+        ? ` · 지금 ${cur <= rec.total_krw ? "<b>역대 최저가</b>" : "+" + won(cur - rec.total_krw)}` : "") + `</div>`
+    : "";
+
+  const lastT = pts.length ? pts[pts.length - 1].t : null;
+  const stale = !off && lastT && Date.now() - lastT > 2 * 3600000;
+  const failed = Object.values(h.sources || {}).filter(s => s.error);
+  const warns = [];
+  if (off) warns.push("감시를 꺼둔 숙소입니다. 아래 가격은 마지막으로 확인한 값이라 지금과 다를 수 있어요.");
+  if (stale) warns.push(`${ago(lastT)} 이후 갱신이 없습니다. 조회가 멈춰 있을 수 있어요.`);
+  if (failed.length) warns.push(
+    (failed.some(s => s.label === "공홈") ? "공홈 조회 실패 — 공식 사이트 가격이 빠진 값입니다. " : "") +
+    failed.map(s => esc(s.label)).join(", ") + " 조회 실패로 더 싼 요금이 빠졌을 수 있어요.");
+
+  const top = (h.offers || [])[0];
+  const cta = !off && top && top.url
+    ? `<a class="cta" href="${esc(top.url)}" target="_blank" rel="noopener">
+         <span>${esc(top.source)}에서 예약<small>${esc(top.room || "")}${top.plan ? " · " + esc(top.plan) : ""}</small></span>
+         <span class="go" aria-hidden="true">→</span></a>` : "";
+
+  const rest = (h.offers || []).slice(1).map((o, i) => `<tr>
+      <td>${i + 2}. ${esc(o.source)}<div class="dim">${esc(o.room)}${o.plan ? " · " + esc(o.plan) : ""}</div></td>
+      <td class="num">${won(o.total_krw)}${o.url ? `<div><a class="open" href="${esc(o.url)}" target="_blank" rel="noopener">열기</a></div>` : ""}</td>
     </tr>`).join("");
-  const recent = h.points.slice(-24).reverse().map(p => `<tr>
+  const recent = (h.points || []).slice(-24).reverse().map(p => `<tr>
       <td>${esc(p.ts)}</td><td>${esc(p.source ?? "–")}</td>
       <td class="num">${won(p.best)}</td><td class="num dim">${p.found ?? "–"}건</td>
     </tr>`).join("");
-  return `<section class="card" id="${esc(h.id)}">
-    <div class="row">
-      <div>
-        <h2>${esc(h.name)}${h.enabled === false ? ' <span class="tag">감시 중지</span>' : ""}</h2>
-        <div class="dim">${esc(h.room_label)} · 성인 ${h.adults} · ${esc(h.conditions || "조건 없음")}</div>
-        <div class="dim">${esc(h.checkin)} ~ ${esc(h.checkout)} (${h.nights}박) · 갱신 ${esc(h.updated || "")}${h.found != null ? ` · 이번 조회 <b>${h.found}건</b>` : ""}</div>
-      </div>
-      <div style="text-align:right">
-        <div class="price">${won(cur)}</div>
-        <div>${chg}${lo != null && cur != null ? ` <span class="dim">최저 ${man(lo)}</span>` : ""}</div>
-      </div>
-    </div>
-    ${chart(h.series && h.series.length ? h.series : h.points)}
-    <div>${srcRows}</div>
-    <details><summary>현재 싼 순 — 조건 일치 ${h.found ?? (h.offers || []).length}건 중 상위 ${(h.offers || []).length}건</summary>
-      <table><thead><tr><th>출처 · 룸 · 조건</th><th class="num">총액</th></tr></thead><tbody>${offers || '<tr><td colspan="2" class="dim">조건에 맞는 요금 없음</td></tr>'}</tbody></table>
-    </details>
-    <details><summary>최근 조회 기록 (${h.points.length}회 중 최신 24회)</summary>
-      <table><thead><tr><th>시각</th><th>최저가 출처</th><th class="num">최저가</th><th class="num">건수</th></tr></thead><tbody>${recent}</tbody></table>
-    </details>
+  const meta = [h.checkin && h.checkout ? `${h.checkin}~${h.checkout} (${h.nights}박)` : "",
+                h.adults ? `성인 ${h.adults}` : "", h.room_label, h.conditions || "조건 없음"]
+               .filter(Boolean).map(esc).join(" · ");
+  const tags = Object.values(h.sources || {}).map(s =>
+    `<span class="tag">${esc(s.label)}${s.error ? ' <span class="err">실패</span>' : (s.found != null ? " " + s.found + "건" : "")}</span>`).join("");
+
+  if (cur == null && !(h.offers || []).length)
+    return `<section class="card ${off ? "off" : ""}" id="${esc(h.id)}">
+      <h2>${esc(h.name)}${off ? ' <span class="tag">감시 중지</span>' : ""}</h2>
+      <div class="meta">${meta}</div>
+      <p class="dim">아직 조회 기록이 없습니다. 다음 조회(매시간)에 가격이 표시됩니다.</p>
+    </section>`;
+
+  return `<section class="card ${off ? "off" : ""}" id="${esc(h.id)}">
+    <h2>${esc(h.name)}${off ? ' <span class="tag">감시 중지</span>' : ""}</h2>
+    <div class="meta">${meta}</div>
+    <div class="price"><span class="sr">현재 최저가 </span>${won(cur)}${off ? '<span class="unit">마지막 확인</span>' : ""}</div>
+    <div>${chg}</div>
+    ${recLine}
+    ${cta}
+    ${warns.map(t => `<p class="warn">${t}</p>`).join("")}
+    ${chartBlock(h)}
+    <div>${tags}</div>
+    <div class="meta" style="margin-top:6px">${lastT ? `갱신 ${ago(lastT)} · ${kst(lastT)}` : ""}${h.found != null ? ` · 이번 조회 ${h.found}건` : ""}</div>
+    ${rest ? `<details><summary>다른 판매처 더 보기 (조건 일치 ${h.found ?? (h.offers || []).length}건 중 상위 ${(h.offers || []).length}건)</summary>
+      <table><thead><tr><th scope="col">출처 · 룸 · 조건</th><th class="num" scope="col">총액</th></tr></thead><tbody>${rest}</tbody></table>
+    </details>` : ""}
+    ${recent ? `<details><summary>조회 기록 (${(h.points || []).length}회 중 최신 24회)</summary>
+      <table><thead><tr><th scope="col">시각</th><th scope="col">최저가 출처</th><th class="num" scope="col">최저가</th><th class="num" scope="col">건수</th></tr></thead><tbody>${recent}</tbody></table>
+    </details>` : ""}
   </section>`;
 }
 
+document.getElementById("app").addEventListener("click", e => {
+  const chip = e.target.closest(".chip");
+  if (!chip) return;
+  const id = chip.dataset.hotel;
+  RANGE[id] = Number(chip.dataset.days);
+  const box = document.getElementById("chart-" + id);
+  if (box) box.innerHTML = chart(inRange(pointsOf(DATA[id]), RANGE[id]), DATA[id].best);
+  chip.parentElement.querySelectorAll(".chip").forEach(c => c.setAttribute("aria-pressed", c === chip));
+});
+
 fetch("data.json?" + Date.now()).then(r => r.json()).then(d => {
-  document.getElementById("updated").textContent = "업데이트 " + d.generated_at;
+  d.hotels.forEach(h => { DATA[h.id] = h; });
+  const last = Math.max(...d.hotels.map(h => { const p = pointsOf(h); return p.length ? p[p.length - 1].t : 0; }), 0);
+  document.getElementById("updated").textContent = last ? `업데이트 ${ago(last)} · ${kst(last)}` : d.generated_at;
   document.getElementById("app").innerHTML = d.hotels.length
     ? d.hotels.map(hotelCard).join("")
     : '<p class="empty">아직 기록이 없습니다.</p>';
-  if (location.hash) document.querySelector(location.hash)?.scrollIntoView();
+  try { if (location.hash) document.getElementById(decodeURIComponent(location.hash.slice(1)))?.scrollIntoView(); } catch (e) {}
 }).catch(e => {
   document.getElementById("app").innerHTML = '<p class="empty">기록을 불러오지 못했습니다: ' + esc(e.message) + "</p>";
 });
