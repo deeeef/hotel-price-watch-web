@@ -226,6 +226,9 @@ function hotelCard(h) {
                .filter(Boolean).map(esc).join(" · ");
   const tags = Object.values(h.sources || {}).map(s =>
     `<span class="tag">${esc(s.label)}${s.error ? ' <span class="err">실패</span>' : (s.found != null ? " " + s.found + "건" : "")}</span>`).join("");
+  // 조건(무료취소 등) 확인이 안 돼 후보에서 빠졌지만 가격은 읽힌 곳 — 참고용으로만 보여줌
+  const refs = Object.values(h.sources || {}).filter(s => s.reference && !s.found).map(s =>
+    `<div class="meta">${esc(s.label)} 표시가 <b>${won(s.reference.total_krw)}</b> · ${esc(s.reference.note)} → 조건 확인 불가로 후보 제외</div>`).join("");
 
   if (cur == null && !(h.offers || []).length)
     return `<section class="card ${off ? "off" : ""}" id="${esc(h.id)}">
@@ -244,6 +247,7 @@ function hotelCard(h) {
     ${warns.map(t => `<p class="warn">${t}</p>`).join("")}
     ${chartBlock(h)}
     <div>${tags}</div>
+    ${refs}
     <div class="meta" style="margin-top:6px">${lastT ? `갱신 ${ago(lastT)} · ${kst(lastT)}` : ""}${h.found != null ? ` · 이번 조회 ${h.found}건` : ""}</div>
     ${rest ? `<details><summary>다른 판매처 ${(h.offers || []).length - 1}곳 더 보기</summary>
       <table><thead><tr><th scope="col">출처 · 룸 · 조건</th><th class="num" scope="col">총액</th></tr></thead><tbody>${rest}</tbody></table>
