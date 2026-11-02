@@ -326,7 +326,8 @@ function shoppingCard(s) {
       <p class="dim">아직 조회 기록이 없습니다. 다음 조회(매시간)에 가격이 표시됩니다.</p>
     </section>`;
 
-  return `<section class="card ${off ? "off" : ""}" id="shopping-${esc(s.id)}">
+const catTag = (s.info && s.info.catalog_sellers) ? `<span class="tag" style="color:var(--accent);font-weight:700">네이버 가격비교 (${esc(s.info.catalog_sellers)}곳 비교)</span>` : '';
+    return `<section class="card ${off ? "off" : ""}" id="shopping-${esc(s.id)}">
     <h2>${esc(s.name)}${off ? ' <span class="tag">감시 중지</span>' : ""}</h2>
     <div class="meta">${meta}</div>
     <div class="price"><span class="sr">현재 최저가 </span>${won(cur)}</div>
@@ -335,7 +336,7 @@ function shoppingCard(s) {
     ${cta}
     ${warns.map(t => `<p class="warn">${t}</p>`).join("")}
     ${chartBlock(s)}
-    <div style="margin-top:6px"><span class="tag">네이버쇼핑</span><span class="tag">${s.found != null ? s.found + "건 일치" : ""}</span></div>
+    <div style="margin-top:6px"><span class="tag">네이버쇼핑</span>${catTag}<span class="tag">${s.found != null ? s.found + "개 상품" : ""}</span></div>
     <div class="meta" style="margin-top:6px">${checkedT ? `갱신 ${ago(checkedT)} · ${kst(checkedT)}` : ""}${s.found != null ? ` · 이번 조회 ${s.found}건` : ""}</div>
     ${rest ? `<details><summary>다른 판매처 ${(s.offers || []).length - 1}곳 더 보기</summary>
       <table><thead><tr><th scope="col">판매처 · 상품명</th><th class="num" scope="col">가격</th></tr></thead><tbody>${rest}</tbody></table>
