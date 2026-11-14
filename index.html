@@ -317,7 +317,8 @@ function shoppingCard(s) {
       <td>${esc(p.ts)}</td><td>${esc(p.source ?? "–")}</td>
       <td class="num">${won(p.best)}</td><td class="num dim">${p.found ?? "–"}건</td>
     </tr>`).join("");
-  const meta = `검색어: ${esc(s.query)} · 정렬: 낮은 가격순 · 1시간 주기 감시`;
+  const qList = (s.queries && s.queries.length > 1) ? s.queries.join(" · ") : (s.query || "");
+  const meta = `통합 검색: ${esc(qList)} · 정렬: 낮은 가격순 · 1시간 주기 감시`;
 
   if (cur == null && !(s.offers || []).length)
     return `<section class="card ${off ? "off" : ""}" id="shopping-${esc(s.id)}">
@@ -371,8 +372,8 @@ function renderTab(tab) {
   } else {
     titleEl.textContent = "네이버쇼핑 가격 감시";
     const items = RAW_DATA.shopping || [];
-    navEl.innerHTML = items.length > 3
-      ? items.map(s => `<a href="#shopping-${esc(s.id)}">${esc(s.name)}</a>`).join("") : "";
+    navEl.innerHTML = items.length > 1
+      ? items.map(s => `<a href="#shopping-${esc(s.id)}">${esc(s.id)}</a>`).join("") : "";
     appEl.innerHTML = items.length
       ? items.map(shoppingCard).join("")
       : '<p class="empty">등록된 쇼핑 상품이 없습니다.</p>';
